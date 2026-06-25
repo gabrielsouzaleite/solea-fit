@@ -7,12 +7,17 @@ const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'O
 
 router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [itens, aggrCusto, aggrPendente] = await Promise.all([
+    const [itens, produtos, aggrPendente] = await Promise.all([
       prisma.itemVenda.findMany({
         include: { venda: true },
         where: { venda: { status: 'pago' } },
       }),
-      prisma.produto.aggregate({ _sum: { custo: true } }),
+      prisma.produto.findMany({
+        select: {
+          custo: true,
+          variacoes: { select: { quantidade: true } },
+        },
+      }),
       prisma.venda.aggregate({
         where: { status: 'pendente' },
         _sum: { valorTotal: true },
@@ -20,7 +25,10 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
     ])
 
     let totalVendido = 0
-    const totalCusto = Number(aggrCusto._sum.custo ?? 0)
+    const totalCusto = produtos.reduce((acc, p) => {
+      const qtdTotal = p.variacoes.reduce((sum, v) => sum + v.quantidade, 0)
+      return acc + Number(p.custo) * qtdTotal
+    }, 0)
     const totalPendente = Number(aggrPendente._sum.valorTotal ?? 0)
 
     const mesMap: Record<string, { mes: string; vendas: number; custo: number; lucro: number }> = {}
