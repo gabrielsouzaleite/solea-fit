@@ -53,7 +53,11 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
         custo,
         preco,
         variacoes: {
-          create: variacoes ?? [],
+          create: (variacoes ?? []).map((v: { cor: string; tamanho: string; quantidade: number }) => ({
+            cor: v.cor,
+            tamanho: v.tamanho,
+            quantidade: v.quantidade,
+          })),
         },
       },
       include: { variacoes: true },
