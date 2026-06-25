@@ -25,6 +25,10 @@ function newProduto(): Produto {
   return { id: '', nomeFabrica: '', nome: '', custo: 0, preco: 0, variacoes: [newVariacao()] }
 }
 
+function parseDecimal(val: string): number {
+  return parseFloat(val.replace(',', '.')) || 0
+}
+
 export function Produtos() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +39,9 @@ export function Produtos() {
   const [uploadingFoto, setUploadingFoto] = useState(false)
   const [busca, setBusca] = useState('')
   const [ordenacao, setOrdenacao] = useState<'nome' | 'nomeFabrica' | 'estoque' | 'cor'>('nome')
+
+  const [custoStr, setCustoStr] = useState('')
+  const [precoStr, setPrecoStr] = useState('')
 
   const [openImport, setOpenImport] = useState(false)
   const [importPreview, setImportPreview] = useState<ParseResult | null>(null)
@@ -55,6 +62,13 @@ export function Produtos() {
   }
 
   useEffect(() => { carregar() }, [])
+
+  useEffect(() => {
+    if (editing) {
+      setCustoStr(editing.custo === 0 ? '' : String(editing.custo).replace('.', ','))
+      setPrecoStr(editing.preco === 0 ? '' : String(editing.preco).replace('.', ','))
+    }
+  }, [editing?.id])
 
   const termo = busca.toLowerCase().trim()
   const filtrados = produtos.filter(p => {
@@ -431,11 +445,25 @@ export function Produtos() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Custo (R$)</Label>
-                  <Input type="number" min={0} step={0.01} value={editing.custo} onChange={e => updateField('custo', Number(e.target.value))} />
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={custoStr}
+                    onChange={e => setCustoStr(e.target.value)}
+                    onBlur={() => updateField('custo', parseDecimal(custoStr))}
+                    placeholder="0,00"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Preço de venda (R$)</Label>
-                  <Input type="number" min={0} step={0.01} value={editing.preco} onChange={e => updateField('preco', Number(e.target.value))} />
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={precoStr}
+                    onChange={e => setPrecoStr(e.target.value)}
+                    onBlur={() => updateField('preco', parseDecimal(precoStr))}
+                    placeholder="0,00"
+                  />
                 </div>
               </div>
 
