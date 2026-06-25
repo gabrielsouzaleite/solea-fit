@@ -55,7 +55,8 @@ export function Dashboard() {
           title="Lucro"
           value={formatBRL(lucro)}
           icon={<TrendingUp className="h-5 w-5 text-muted-foreground" />}
-          highlight
+          highlight={lucro >= 0}
+          negative={lucro < 0}
         />
       </div>
 
@@ -123,20 +124,22 @@ function StatCard({
   value,
   icon,
   highlight,
+  negative,
 }: {
   title: string
   value: string
   icon: React.ReactNode
   highlight?: boolean
+  negative?: boolean
 }) {
   return (
-    <Card className={highlight ? 'border-green-200 bg-green-50' : ''}>
+    <Card className={highlight ? 'border-green-200 bg-green-50' : negative ? 'border-red-200 bg-red-50' : ''}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         {icon}
       </CardHeader>
       <CardContent>
-        <p className={`text-2xl font-bold ${highlight ? 'text-green-700' : ''}`}>{value}</p>
+        <p className={`text-2xl font-bold ${highlight ? 'text-green-700' : negative ? 'text-red-700' : ''}`}>{value}</p>
       </CardContent>
     </Card>
   )
