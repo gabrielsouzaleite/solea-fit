@@ -47,9 +47,10 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { clienteId, formaPagamento, itens } = req.body as {
+    const { clienteId, formaPagamento, status = 'pago', itens } = req.body as {
       clienteId: string
       formaPagamento: string
+      status?: string
       itens: { variacaoId: string; produtoId: string; quantidade: number; precoUnit: number; custoUnit: number }[]
     }
 
@@ -78,6 +79,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         data: {
           clienteId,
           formaPagamento,
+          status,
           valorTotal,
           itens: {
             create: itens.map((i) => ({
@@ -112,6 +114,21 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       res.status(400).json({ error: err.message })
       return
     }
+    next(err)
+  }
+})
+
+router.patch('/:id/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params as { id: string }
+    const { status } = req.body as { status: string }
+    if (!['pago', 'pendente'].includes(status)) {
+      res.status(400).json({ error: 'Status inválido.' })
+      return
+    }
+    const venda = await prisma.venda.update({ where: { id }, data: { status } })
+    res.json(venda)
+  } catch (err) {
     next(err)
   }
 })

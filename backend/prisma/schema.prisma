@@ -46,6 +46,7 @@ model Venda {
   clienteId      String
   cliente        Cliente     @relation(fields: [clienteId], references: [id])
   formaPagamento String
+  status         String      @default("pago")
   data           DateTime    @default(now())
   valorTotal     Decimal
   itens          ItemVenda[]

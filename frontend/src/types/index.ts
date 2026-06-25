@@ -39,6 +39,7 @@ export interface Venda {
   itens: ItemVenda[]
   clienteId: string
   formaPagamento: FormaPagamento
+  status: 'pago' | 'pendente'
   data: string
   valorTotal: number
 }
@@ -61,6 +62,7 @@ export interface VendaAPI {
   clienteId: string
   cliente: Cliente
   formaPagamento: FormaPagamento
+  status: 'pago' | 'pendente'
   data: string
   valorTotal: number
   itens: ItemVendaAPI[]
@@ -76,6 +78,7 @@ export interface VendasPaginado {
 export interface NovaVendaPayload {
   clienteId: string
   formaPagamento: string
+  status: 'pago' | 'pendente'
   itens: { produtoId: string; variacaoId: string; quantidade: number; precoUnit: number; custoUnit: number }[]
 }
 
@@ -83,6 +86,7 @@ export interface DashboardData {
   totalVendido: number
   totalCusto: number
   lucro: number
+  totalPendente: number
   porMes: { mes: string; vendas: number; custo: number; lucro: number }[]
   porPagamento: { forma: string; total: number }[]
 }

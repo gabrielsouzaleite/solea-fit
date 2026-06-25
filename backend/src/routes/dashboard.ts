@@ -7,13 +7,21 @@ const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'O
 
 router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [itens, aggrCusto] = await Promise.all([
-      prisma.itemVenda.findMany({ include: { venda: true } }),
+    const [itens, aggrCusto, aggrPendente] = await Promise.all([
+      prisma.itemVenda.findMany({
+        include: { venda: true },
+        where: { venda: { status: 'pago' } },
+      }),
       prisma.produto.aggregate({ _sum: { custo: true } }),
+      prisma.venda.aggregate({
+        where: { status: 'pendente' },
+        _sum: { valorTotal: true },
+      }),
     ])
 
     let totalVendido = 0
     const totalCusto = Number(aggrCusto._sum.custo ?? 0)
+    const totalPendente = Number(aggrPendente._sum.valorTotal ?? 0)
 
     const mesMap: Record<string, { mes: string; vendas: number; custo: number; lucro: number }> = {}
     const pagMap: Record<string, number> = {}
@@ -41,6 +49,7 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
       totalVendido,
       totalCusto,
       lucro: totalVendido - totalCusto,
+      totalPendente,
       porMes: Object.values(mesMap),
       porPagamento: Object.entries(pagMap).map(([forma, total]) => ({ forma, total })),
     })

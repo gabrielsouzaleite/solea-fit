@@ -124,6 +124,13 @@ export async function createVenda(body: NovaVendaPayload): Promise<VendaAPI> {
   return normalizeVenda(data)
 }
 
+export async function updateVendaStatus(id: string, status: 'pago' | 'pendente'): Promise<void> {
+  await apiFetch<void>(`/vendas/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  })
+}
+
 // --- Dashboard ---
 
 export async function getDashboard(): Promise<DashboardData> {

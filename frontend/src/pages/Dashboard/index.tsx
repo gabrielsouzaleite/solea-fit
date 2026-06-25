@@ -16,6 +16,7 @@ const emptyData: DashboardData = {
   totalVendido: 0,
   totalCusto: 0,
   lucro: 0,
+  totalPendente: 0,
   porMes: [],
   porPagamento: [],
 }
@@ -31,7 +32,7 @@ export function Dashboard() {
       .finally(() => setLoading(false))
   }, [])
 
-  const { totalVendido, totalCusto, lucro, porMes, porPagamento } = data
+  const { totalVendido, totalCusto, lucro, totalPendente, porMes, porPagamento } = data
 
   return (
     <div className="p-4 md:p-8 space-y-6">
@@ -40,7 +41,7 @@ export function Dashboard() {
         {loading && <p className="text-muted-foreground text-sm">Carregando...</p>}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatCard
           title="Total Vendido"
           value={formatBRL(totalVendido)}
@@ -57,6 +58,12 @@ export function Dashboard() {
           icon={<TrendingUp className="h-5 w-5 text-muted-foreground" />}
           highlight={lucro >= 0}
           negative={lucro < 0}
+        />
+        <StatCard
+          title="Pagamentos Pendentes"
+          value={formatBRL(totalPendente)}
+          icon={<DollarSign className="h-5 w-5 text-muted-foreground" />}
+          warning
         />
       </div>
 
@@ -125,21 +132,25 @@ function StatCard({
   icon,
   highlight,
   negative,
+  warning,
 }: {
   title: string
   value: string
   icon: React.ReactNode
   highlight?: boolean
   negative?: boolean
+  warning?: boolean
 }) {
+  const cardClass = highlight ? 'border-green-200 bg-green-50' : negative ? 'border-red-200 bg-red-50' : warning ? 'border-yellow-200 bg-yellow-50' : ''
+  const textClass = highlight ? 'text-green-700' : negative ? 'text-red-700' : warning ? 'text-yellow-700' : ''
   return (
-    <Card className={highlight ? 'border-green-200 bg-green-50' : negative ? 'border-red-200 bg-red-50' : ''}>
+    <Card className={cardClass}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         {icon}
       </CardHeader>
       <CardContent>
-        <p className={`text-2xl font-bold ${highlight ? 'text-green-700' : negative ? 'text-red-700' : ''}`}>{value}</p>
+        <p className={`text-2xl font-bold ${textClass}`}>{value}</p>
       </CardContent>
     </Card>
   )

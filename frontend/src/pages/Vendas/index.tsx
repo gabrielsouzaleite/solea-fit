@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { getVendas, createVenda, getProdutos, getClientes } from '@/lib/api'
+import { getVendas, createVenda, updateVendaStatus, getProdutos, getClientes } from '@/lib/api'
 import type { VendaAPI, Produto, Cliente, FormaPagamento } from '@/types'
 
 const PAGE_SIZE = 10
@@ -52,6 +52,7 @@ export function Vendas() {
   const [itens, setItens] = useState<ItemRascunho[]>([])
   const [clienteId, setClienteId] = useState('')
   const [forma, setForma] = useState<FormaPagamento>('pix')
+  const [statusVenda, setStatusVenda] = useState<'pago' | 'pendente'>('pago')
   const [busca, setBusca] = useState('')
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
 
@@ -89,6 +90,7 @@ export function Vendas() {
     setItens([])
     setClienteId('')
     setForma('pix')
+    setStatusVenda('pago')
     setBusca('')
     setProdutoSelecionado(null)
     setStep('itens')
@@ -126,6 +128,7 @@ export function Vendas() {
       await createVenda({
         clienteId,
         formaPagamento: forma,
+        status: statusVenda,
         itens: itens.map(i => {
           const p = produtos.find(p => p.id === i.produtoId)!
           return {
@@ -225,6 +228,7 @@ export function Vendas() {
               <TableHead>Cliente</TableHead>
               <TableHead>Produtos</TableHead>
               <TableHead>Pagamento</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Total</TableHead>
             </TableRow>
           </TableHeader>
@@ -232,7 +236,7 @@ export function Vendas() {
             {loading ? (
               [...Array(3)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(5)].map((_, j) => (
+                  {[...Array(6)].map((_, j) => (
                     <TableCell key={j}><div className="h-4 bg-muted animate-pulse rounded" /></TableCell>
                   ))}
                 </TableRow>
@@ -255,12 +259,28 @@ export function Vendas() {
                     <TableCell>
                       <Badge variant="outline">{FORMA_LABEL[v.formaPagamento]}</Badge>
                     </TableCell>
+                    <TableCell>
+                      <button
+                        onClick={async () => {
+                          const novoStatus = v.status === 'pago' ? 'pendente' : 'pago'
+                          try {
+                            await updateVendaStatus(v.id, novoStatus)
+                            await carregar()
+                          } catch (e) {
+                            alert(e instanceof Error ? e.message : 'Erro ao atualizar status.')
+                          }
+                        }}
+                        className={`text-xs px-2 py-0.5 rounded-full border font-medium cursor-pointer transition-colors ${v.status === 'pago' ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200'}`}
+                      >
+                        {v.status === 'pago' ? 'Pago' : 'Pendente'}
+                      </button>
+                    </TableCell>
                     <TableCell className="text-right font-semibold">{formatBRL(v.valorTotal)}</TableCell>
                   </TableRow>
                 ))}
                 {vendas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       Nenhuma venda encontrada.
                     </TableCell>
                   </TableRow>
@@ -418,6 +438,18 @@ export function Vendas() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label>Status do pagamento</Label>
+                <Select value={statusVenda} onValueChange={v => setStatusVenda(v as 'pago' | 'pendente')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pago">Pago</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
@@ -431,6 +463,12 @@ export function Vendas() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Pagamento</span>
                   <span className="font-medium">{FORMA_LABEL[forma]}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge className={statusVenda === 'pago' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'} variant="outline">
+                    {statusVenda === 'pago' ? 'Pago' : 'Pendente'}
+                  </Badge>
                 </div>
                 <div className="border-t pt-2 space-y-1">
                   {itens.map((item, idx) => {
