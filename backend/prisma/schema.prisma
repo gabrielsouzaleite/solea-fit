@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Produto {
+  id           String      @id @default(uuid())
+  nomeFabrica  String
+  nome         String
+  foto         String?
+  custo        Decimal
+  preco        Decimal
+  variacoes    Variacao[]
+  itensVenda   ItemVenda[]
+  criadoEm     DateTime    @default(now())
+  atualizadoEm DateTime    @updatedAt
+}
+
+model Variacao {
+  id         String      @id @default(uuid())
+  cor        String
+  tamanho    String
+  quantidade Int
+  produtoId  String
+  produto    Produto     @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  itensVenda ItemVenda[]
+}
+
+model Cliente {
+  id              String  @id @default(uuid())
+  nome            String
+  sexo            String
+  contato         String
+  dataNascimento  String?
+  status          String  @default("ativo")
+  vendas          Venda[]
+}
+
+model Venda {
+  id             String      @id @default(uuid())
+  clienteId      String
+  cliente        Cliente     @relation(fields: [clienteId], references: [id])
+  formaPagamento String
+  data           DateTime    @default(now())
+  valorTotal     Decimal
+  itens          ItemVenda[]
+}
+
+model ItemVenda {
+  id         String   @id @default(uuid())
+  vendaId    String
+  venda      Venda    @relation(fields: [vendaId], references: [id])
+  produtoId  String
+  produto    Produto  @relation(fields: [produtoId], references: [id])
+  variacaoId String
+  variacao   Variacao @relation(fields: [variacaoId], references: [id])
+  quantidade Int
+  precoUnit  Decimal
+  custoUnit  Decimal
+}
