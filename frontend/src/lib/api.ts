@@ -25,21 +25,21 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 // Prisma retorna Decimal como string — normaliza para number
 function normalizeProduto(p: Record<string, unknown>): Produto {
   return {
-    ...(p as Produto),
+    ...(p as unknown as Produto),
     custo: Number(p.custo),
     preco: Number(p.preco),
     variacoes: ((p.variacoes as Record<string, unknown>[]) ?? []).map(v => ({
-      ...(v as import('@/types').Variacao),
+      ...(v as unknown as import('@/types').Variacao),
     })),
   }
 }
 
 function normalizeVenda(v: Record<string, unknown>): VendaAPI {
   return {
-    ...(v as VendaAPI),
+    ...(v as unknown as VendaAPI),
     valorTotal: Number(v.valorTotal),
     itens: ((v.itens as Record<string, unknown>[]) ?? []).map(i => ({
-      ...(i as import('@/types').ItemVendaAPI),
+      ...(i as unknown as import('@/types').ItemVendaAPI),
       precoUnit: Number(i.precoUnit),
       custoUnit: Number(i.custoUnit),
       produto: i.produto ? normalizeProduto(i.produto as Record<string, unknown>) : (i.produto as Produto),

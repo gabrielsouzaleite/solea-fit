@@ -83,7 +83,7 @@ export function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `R$${v}`} />
-                  <Tooltip formatter={(v: number) => formatBRL(v)} />
+                  <Tooltip formatter={(v) => formatBRL(Number(v ?? 0))} />
                   <Legend />
                   <Area type="monotone" dataKey="vendas" name="Vendas" stroke="#0ea5e9" fill="url(#gVendas)" strokeWidth={2} />
                   <Area type="monotone" dataKey="lucro" name="Lucro" stroke="#10b981" fill="url(#gLucro)" strokeWidth={2} />
@@ -106,7 +106,7 @@ export function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="forma" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `R$${v}`} />
-                  <Tooltip formatter={(v: number) => formatBRL(v)} />
+                  <Tooltip formatter={(v) => formatBRL(Number(v ?? 0))} />
                   <Bar dataKey="total" name="Total" fill="#6366f1" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
