@@ -4,6 +4,7 @@ import type {
   NovaVendaPayload,
   Produto,
   VendaAPI,
+  VendaAuditLog,
   VendasPaginado,
 } from '@/types'
 
@@ -129,6 +130,25 @@ export async function updateVendaStatus(id: string, status: 'pago' | 'pendente')
     method: 'PATCH',
     body: JSON.stringify({ status }),
   })
+}
+
+export async function updateVenda(id: string, body: NovaVendaPayload): Promise<VendaAPI> {
+  const data = await apiFetch<Record<string, unknown>>(`/vendas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+  return normalizeVenda(data)
+}
+
+export async function deleteVenda(id: string, observacao: string): Promise<void> {
+  await apiFetch<void>(`/vendas/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ observacao }),
+  })
+}
+
+export async function getVendaLogs(id: string): Promise<VendaAuditLog[]> {
+  return apiFetch<VendaAuditLog[]>(`/vendas/${id}/logs`)
 }
 
 // --- Dashboard ---

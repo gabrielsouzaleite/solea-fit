@@ -82,6 +82,16 @@ export interface NovaVendaPayload {
   itens: { produtoId: string; variacaoId: string; quantidade: number; precoUnit: number; custoUnit: number }[]
 }
 
+export interface VendaAuditLog {
+  id: string
+  vendaId: string
+  acao: 'editado' | 'deletado'
+  dadosAntes: unknown
+  dadosDepois: unknown | null
+  observacao: string | null
+  criadoEm: string
+}
+
 export interface DashboardData {
   totalVendido: number
   totalCusto: number

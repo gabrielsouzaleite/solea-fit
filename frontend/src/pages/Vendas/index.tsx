@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp, Trash2, Pencil, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { getVendas, createVenda, updateVendaStatus, getProdutos, getClientes } from '@/lib/api'
-import type { VendaAPI, Produto, Cliente, FormaPagamento } from '@/types'
+import { Textarea } from '@/components/ui/textarea'
+import { getVendas, createVenda, updateVenda, deleteVenda, updateVendaStatus, getProdutos, getClientes, getVendaLogs } from '@/lib/api'
+import type { VendaAPI, Produto, Cliente, FormaPagamento, VendaAuditLog } from '@/types'
 
 const PAGE_SIZE = 10
 
@@ -29,6 +30,10 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('pt-BR')
 }
 
+function formatDateTime(d: string) {
+  return new Date(d).toLocaleString('pt-BR')
+}
+
 type ItemRascunho = { produtoId: string; variacaoId: string; quantidade: number }
 
 export function Vendas() {
@@ -43,12 +48,13 @@ export function Vendas() {
   const [filtroDataDe, setFiltroDataDe] = useState('')
   const [filtroDataAte, setFiltroDataAte] = useState('')
 
-  // Dados para o modal
+  // Dados para os modais
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
 
-  // Modal nova venda
+  // Modal nova/editar venda
   const [open, setOpen] = useState(false)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [step, setStep] = useState<'itens' | 'pagamento' | 'confirmar'>('itens')
   const [itens, setItens] = useState<ItemRascunho[]>([])
@@ -57,6 +63,16 @@ export function Vendas() {
   const [statusVenda, setStatusVenda] = useState<'pago' | 'pendente'>('pago')
   const [busca, setBusca] = useState('')
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
+
+  // Dialog de exclusão
+  const [excluindoVenda, setExcluindoVenda] = useState<VendaAPI | null>(null)
+  const [observacaoExclusao, setObservacaoExclusao] = useState('')
+  const [excluindo, setExcluindo] = useState(false)
+
+  // Modal de histórico
+  const [historicoVenda, setHistoricoVenda] = useState<VendaAPI | null>(null)
+  const [logs, setLogs] = useState<VendaAuditLog[]>([])
+  const [carregandoLogs, setCarregandoLogs] = useState(false)
 
   const carregar = useCallback(async () => {
     setLoading(true)
@@ -71,7 +87,6 @@ export function Vendas() {
 
       const res = await getVendas(params)
 
-      // Filtro de cliente por nome é feito no cliente (API filtra por ID)
       const filtrado = filtroCliente
         ? res.data.filter(v => v.cliente.nome.toLowerCase().includes(filtroCliente.toLowerCase()))
         : res.data
@@ -87,8 +102,18 @@ export function Vendas() {
 
   useEffect(() => { carregar() }, [carregar])
 
-  // Carrega produtos e clientes apenas quando o modal for aberto
+  async function carregarProdutosClientes() {
+    try {
+      const [prods, clis] = await Promise.all([getProdutos(), getClientes()])
+      setProdutos(prods)
+      setClientes(clis.filter(c => c.status === 'ativo'))
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   async function abrirModal() {
+    setEditandoId(null)
     setItens([])
     setClienteId('')
     setForma('pix')
@@ -97,13 +122,24 @@ export function Vendas() {
     setProdutoSelecionado(null)
     setStep('itens')
     setOpen(true)
-    try {
-      const [prods, clis] = await Promise.all([getProdutos(), getClientes()])
-      setProdutos(prods)
-      setClientes(clis.filter(c => c.status === 'ativo'))
-    } catch (e) {
-      console.error(e)
-    }
+    await carregarProdutosClientes()
+  }
+
+  async function abrirEditar(venda: VendaAPI) {
+    setEditandoId(venda.id)
+    setClienteId(venda.clienteId)
+    setForma(venda.formaPagamento)
+    setStatusVenda(venda.status as 'pago' | 'pendente')
+    setItens(venda.itens.map(i => ({
+      produtoId: i.produtoId,
+      variacaoId: i.variacaoId,
+      quantidade: i.quantidade,
+    })))
+    setBusca('')
+    setProdutoSelecionado(null)
+    setStep('itens')
+    setOpen(true)
+    await carregarProdutosClientes()
   }
 
   function addItem(produtoId: string, variacaoId: string) {
@@ -127,7 +163,7 @@ export function Vendas() {
   async function confirmarVenda() {
     setSalvando(true)
     try {
-      await createVenda({
+      const payload = {
         clienteId,
         formaPagamento: forma,
         status: statusVenda,
@@ -141,7 +177,12 @@ export function Vendas() {
             custoUnit: p.custo,
           }
         }),
-      })
+      }
+      if (editandoId) {
+        await updateVenda(editandoId, payload)
+      } else {
+        await createVenda(payload)
+      }
       setOpen(false)
       setPage(1)
       await carregar()
@@ -149,6 +190,36 @@ export function Vendas() {
       alert(e instanceof Error ? e.message : 'Erro ao registrar venda.')
     } finally {
       setSalvando(false)
+    }
+  }
+
+  async function confirmarExclusao() {
+    if (!excluindoVenda || !observacaoExclusao.trim()) return
+    setExcluindo(true)
+    try {
+      await deleteVenda(excluindoVenda.id, observacaoExclusao.trim())
+      setExcluindoVenda(null)
+      setObservacaoExclusao('')
+      setPage(1)
+      await carregar()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erro ao excluir venda.')
+    } finally {
+      setExcluindo(false)
+    }
+  }
+
+  async function abrirHistorico(venda: VendaAPI) {
+    setHistoricoVenda(venda)
+    setLogs([])
+    setCarregandoLogs(true)
+    try {
+      const data = await getVendaLogs(venda.id)
+      setLogs(data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setCarregandoLogs(false)
     }
   }
 
@@ -234,13 +305,14 @@ export function Vendas() {
               <TableHead>Pagamento</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               [...Array(3)].map((_, i) => (
                 <TableRow key={i}>
-                  {[...Array(6)].map((_, j) => (
+                  {[...Array(7)].map((_, j) => (
                     <TableCell key={j}><div className="h-4 bg-muted animate-pulse rounded" /></TableCell>
                   ))}
                 </TableRow>
@@ -280,11 +352,24 @@ export function Vendas() {
                       </button>
                     </TableCell>
                     <TableCell className="text-right font-semibold">{formatBRL(v.valorTotal)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar" onClick={() => abrirEditar(v)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Histórico" onClick={() => abrirHistorico(v)}>
+                          <History className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" title="Excluir" onClick={() => { setExcluindoVenda(v); setObservacaoExclusao('') }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {vendas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       Nenhuma venda encontrada.
                     </TableCell>
                   </TableRow>
@@ -303,11 +388,11 @@ export function Vendas() {
         </div>
       )}
 
-      {/* Modal Nova Venda */}
+      {/* Modal Nova/Editar Venda */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nova venda</DialogTitle>
+            <DialogTitle>{editandoId ? 'Editar venda' : 'Nova venda'}</DialogTitle>
             <div className="flex gap-2 pt-2">
               {(['itens', 'pagamento', 'confirmar'] as const).map((s, idx) => (
                 <div key={s} className="flex items-center gap-2">
@@ -511,12 +596,130 @@ export function Vendas() {
             )}
             {step === 'confirmar' && (
               <Button onClick={confirmarVenda} disabled={salvando}>
-                {salvando ? 'Registrando...' : 'Confirmar venda'}
+                {salvando ? 'Salvando...' : editandoId ? 'Salvar alterações' : 'Confirmar venda'}
               </Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog Excluir */}
+      <Dialog open={!!excluindoVenda} onOpenChange={open => { if (!open) { setExcluindoVenda(null); setObservacaoExclusao('') } }}>
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir venda</DialogTitle>
+          </DialogHeader>
+          {excluindoVenda && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Venda de <strong>{excluindoVenda.cliente.nome}</strong> em {formatDate(excluindoVenda.data)} — {formatBRL(excluindoVenda.valorTotal)}.
+                O estoque dos itens será restaurado.
+              </p>
+              <div className="space-y-1.5">
+                <Label>
+                  Observação <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  placeholder="Informe o motivo da exclusão..."
+                  value={observacaoExclusao}
+                  onChange={e => setObservacaoExclusao(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setExcluindoVenda(null); setObservacaoExclusao('') }} disabled={excluindo}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmarExclusao} disabled={!observacaoExclusao.trim() || excluindo}>
+              {excluindo ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Histórico */}
+      <Dialog open={!!historicoVenda} onOpenChange={open => { if (!open) setHistoricoVenda(null) }}>
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Histórico da venda</DialogTitle>
+            {historicoVenda && (
+              <p className="text-sm text-muted-foreground">
+                {historicoVenda.cliente.nome} — {formatDate(historicoVenda.data)}
+              </p>
+            )}
+          </DialogHeader>
+          {carregandoLogs ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Carregando...</p>
+          ) : logs.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Nenhum registro de alteração encontrado.</p>
+          ) : (
+            <div className="space-y-3">
+              {logs.map(log => (
+                <LogEntry key={log.id} log={log} />
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoricoVenda(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function LogEntry({ log }: { log: VendaAuditLog }) {
+  const antes = log.dadosAntes as Record<string, unknown> | null
+  const depois = log.dadosDepois as Record<string, unknown> | null
+
+  const campos: { label: string; chave: string }[] = [
+    { label: 'Cliente', chave: 'clienteId' },
+    { label: 'Pagamento', chave: 'formaPagamento' },
+    { label: 'Status', chave: 'status' },
+    { label: 'Total', chave: 'valorTotal' },
+  ]
+
+  const mudancas = log.acao === 'editado' && antes && depois
+    ? campos.filter(c => JSON.stringify(antes[c.chave]) !== JSON.stringify(depois[c.chave]))
+    : []
+
+  const itensMudaram = log.acao === 'editado' && antes && depois &&
+    JSON.stringify(antes['itens']) !== JSON.stringify(depois['itens'])
+
+  return (
+    <div className="border rounded-md p-3 space-y-2 text-sm">
+      <div className="flex items-center justify-between">
+        <span className={`font-medium ${log.acao === 'deletado' ? 'text-destructive' : 'text-primary'}`}>
+          {log.acao === 'editado' ? '✏️ Editado' : '🗑️ Excluído'}
+        </span>
+        <span className="text-xs text-muted-foreground">{formatDateTime(log.criadoEm)}</span>
+      </div>
+      {log.acao === 'editado' && (
+        <div className="space-y-1">
+          {mudancas.map(c => (
+            <div key={c.chave} className="text-xs">
+              <span className="text-muted-foreground">{c.label}: </span>
+              <span className="line-through text-red-500">{String(antes![c.chave] ?? '')}</span>
+              <span className="mx-1 text-muted-foreground">→</span>
+              <span className="text-green-600">{String(depois![c.chave] ?? '')}</span>
+            </div>
+          ))}
+          {itensMudaram && (
+            <div className="text-xs text-muted-foreground">Itens da venda foram alterados.</div>
+          )}
+          {mudancas.length === 0 && !itensMudaram && (
+            <div className="text-xs text-muted-foreground">Sem diferenças registradas.</div>
+          )}
+        </div>
+      )}
+      {log.acao === 'deletado' && log.observacao && (
+        <div className="text-xs">
+          <span className="text-muted-foreground">Motivo: </span>
+          <span>{log.observacao}</span>
+        </div>
+      )}
     </div>
   )
 }

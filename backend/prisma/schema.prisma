@@ -64,3 +64,13 @@ model ItemVenda {
   precoUnit  Decimal
   custoUnit  Decimal
 }
+
+model VendaAuditLog {
+  id          String   @id @default(uuid())
+  vendaId     String
+  acao        String
+  dadosAntes  Json
+  dadosDepois Json?
+  observacao  String?
+  criadoEm   DateTime @default(now())
+}
