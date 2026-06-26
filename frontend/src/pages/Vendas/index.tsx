@@ -17,6 +17,8 @@ const FORMA_LABEL: Record<FormaPagamento, string> = {
   dinheiro: 'Dinheiro',
   cartao_debito: 'Débito',
   cartao_credito: 'Crédito',
+  brinde: 'Brinde',
+  closet_da_dona: 'Closet da Dona',
 }
 
 function formatBRL(v: number) {
@@ -200,6 +202,8 @@ export function Vendas() {
               <SelectItem value="dinheiro">Dinheiro</SelectItem>
               <SelectItem value="cartao_debito">Débito</SelectItem>
               <SelectItem value="cartao_credito">Crédito</SelectItem>
+              <SelectItem value="brinde">Brinde</SelectItem>
+              <SelectItem value="closet_da_dona">Closet da Dona</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -435,6 +439,8 @@ export function Vendas() {
                     <SelectItem value="dinheiro">Dinheiro</SelectItem>
                     <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
                     <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                    <SelectItem value="brinde">Brinde</SelectItem>
+                    <SelectItem value="closet_da_dona">Closet da Dona</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

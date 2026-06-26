@@ -24,7 +24,7 @@ export interface Cliente {
   status: 'ativo' | 'desativado'
 }
 
-export type FormaPagamento = 'pix' | 'dinheiro' | 'cartao_debito' | 'cartao_credito'
+export type FormaPagamento = 'pix' | 'dinheiro' | 'cartao_debito' | 'cartao_credito' | 'brinde' | 'closet_da_dona'
 
 export interface ItemVenda {
   produtoId: string
@@ -87,6 +87,7 @@ export interface DashboardData {
   totalCusto: number
   lucro: number
   totalPendente: number
+  totalBrindes: number
   porMes: { mes: string; vendas: number; custo: number; lucro: number; compras: number }[]
   porPagamento: { forma: string; total: number }[]
 }

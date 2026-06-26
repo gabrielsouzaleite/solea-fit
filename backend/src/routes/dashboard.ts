@@ -4,6 +4,7 @@ import prisma from '../lib/prisma'
 const router = Router()
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+const FORMAS_SEM_RECEITA = ['brinde', 'closet_da_dona']
 
 router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -27,6 +28,7 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
     ])
 
     let totalVendido = 0
+    let totalBrindes = 0
     const comprasMap: Record<string, number> = {}
     const totalCusto = produtos.reduce((acc, p) => {
       const qtdEstoque = p.variacoes.reduce((sum, v) => sum + v.quantidade, 0)
@@ -42,8 +44,15 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
     const pagMap: Record<string, number> = {}
 
     for (const item of itens) {
-      const receita = Number(item.precoUnit) * item.quantidade
+      const fp = item.venda.formaPagamento
       const custo = Number(item.custoUnit) * item.quantidade
+
+      if (FORMAS_SEM_RECEITA.includes(fp)) {
+        totalBrindes += custo
+        continue
+      }
+
+      const receita = Number(item.precoUnit) * item.quantidade
 
       totalVendido += receita
 
@@ -56,7 +65,6 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
       mesMap[mesLabel].custo += custo
       mesMap[mesLabel].lucro += receita - custo
 
-      const fp = item.venda.formaPagamento
       pagMap[fp] = (pagMap[fp] ?? 0) + receita
     }
 
@@ -74,6 +82,7 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
       totalCusto,
       lucro: totalVendido - totalCusto,
       totalPendente,
+      totalBrindes,
       porMes,
       porPagamento: Object.entries(pagMap).map(([forma, total]) => ({ forma, total })),
     })

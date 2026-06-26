@@ -3,7 +3,7 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
-import { TrendingUp, DollarSign, ShoppingBag } from 'lucide-react'
+import { TrendingUp, DollarSign, ShoppingBag, Gift } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getDashboard } from '@/lib/api'
 import type { DashboardData } from '@/types'
@@ -17,6 +17,7 @@ const emptyData: DashboardData = {
   totalCusto: 0,
   lucro: 0,
   totalPendente: 0,
+  totalBrindes: 0,
   porMes: [],
   porPagamento: [],
 }
@@ -32,7 +33,7 @@ export function Dashboard() {
       .finally(() => setLoading(false))
   }, [])
 
-  const { totalVendido, totalCusto, lucro, totalPendente, porMes, porPagamento } = data
+  const { totalVendido, totalCusto, lucro, totalPendente, totalBrindes, porMes, porPagamento } = data
 
   return (
     <div className="p-4 md:p-8 space-y-6">
@@ -41,7 +42,7 @@ export function Dashboard() {
         {loading && <p className="text-muted-foreground text-sm">Carregando...</p>}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
         <StatCard
           title="Total Vendido"
           value={formatBRL(totalVendido)}
@@ -64,6 +65,11 @@ export function Dashboard() {
           value={formatBRL(totalPendente)}
           icon={<DollarSign className="h-5 w-5 text-muted-foreground" />}
           warning
+        />
+        <StatCard
+          title="Brindes / Closet"
+          value={formatBRL(totalBrindes)}
+          icon={<Gift className="h-5 w-5 text-muted-foreground" />}
         />
       </div>
 
