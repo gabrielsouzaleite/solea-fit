@@ -15,7 +15,9 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
       prisma.produto.findMany({
         select: {
           custo: true,
+          criadoEm: true,
           variacoes: { select: { quantidade: true } },
+          itensVenda: { select: { quantidade: true } },
         },
       }),
       prisma.venda.aggregate({
@@ -25,9 +27,14 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
     ])
 
     let totalVendido = 0
+    const comprasMap: Record<string, number> = {}
     const totalCusto = produtos.reduce((acc, p) => {
-      const qtdTotal = p.variacoes.reduce((sum, v) => sum + v.quantidade, 0)
-      return acc + Number(p.custo) * qtdTotal
+      const qtdEstoque = p.variacoes.reduce((sum, v) => sum + v.quantidade, 0)
+      const qtdVendida = p.itensVenda.reduce((sum, iv) => sum + iv.quantidade, 0)
+      const custoOriginal = Number(p.custo) * (qtdEstoque + qtdVendida)
+      const mesLabel = MESES[new Date(p.criadoEm).getMonth()]
+      comprasMap[mesLabel] = (comprasMap[mesLabel] ?? 0) + custoOriginal
+      return acc + custoOriginal
     }, 0)
     const totalPendente = Number(aggrPendente._sum.valorTotal ?? 0)
 
@@ -53,12 +60,21 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
       pagMap[fp] = (pagMap[fp] ?? 0) + receita
     }
 
+    const allMeses = new Set([...Object.keys(mesMap), ...Object.keys(comprasMap)])
+    const porMes = Array.from(allMeses).map(mes => ({
+      mes,
+      vendas: mesMap[mes]?.vendas ?? 0,
+      custo: mesMap[mes]?.custo ?? 0,
+      lucro: mesMap[mes]?.lucro ?? 0,
+      compras: comprasMap[mes] ?? 0,
+    }))
+
     res.json({
       totalVendido,
       totalCusto,
       lucro: totalVendido - totalCusto,
       totalPendente,
-      porMes: Object.values(mesMap),
+      porMes,
       porPagamento: Object.entries(pagMap).map(([forma, total]) => ({ forma, total })),
     })
   } catch (err) {

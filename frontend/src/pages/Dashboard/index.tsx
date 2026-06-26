@@ -87,6 +87,10 @@ export function Dashboard() {
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
                       <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                     </linearGradient>
+                    <linearGradient id="gCompras" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
@@ -95,6 +99,7 @@ export function Dashboard() {
                   <Legend />
                   <Area type="monotone" dataKey="vendas" name="Vendas" stroke="#0ea5e9" fill="url(#gVendas)" strokeWidth={2} />
                   <Area type="monotone" dataKey="lucro" name="Lucro" stroke="#10b981" fill="url(#gLucro)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="compras" name="Compras" stroke="#f59e0b" fill="url(#gCompras)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             )}

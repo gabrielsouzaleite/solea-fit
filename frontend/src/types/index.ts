@@ -87,6 +87,6 @@ export interface DashboardData {
   totalCusto: number
   lucro: number
   totalPendente: number
-  porMes: { mes: string; vendas: number; custo: number; lucro: number }[]
+  porMes: { mes: string; vendas: number; custo: number; lucro: number; compras: number }[]
   porPagamento: { forma: string; total: number }[]
 }
