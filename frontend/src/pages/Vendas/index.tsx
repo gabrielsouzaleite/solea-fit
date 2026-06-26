@@ -675,7 +675,7 @@ function LogEntry({ log }: { log: VendaAuditLog }) {
   const depois = log.dadosDepois as Record<string, unknown> | null
 
   const campos: { label: string; chave: string }[] = [
-    { label: 'Cliente', chave: 'clienteId' },
+    { label: 'Cliente', chave: 'clienteNome' },
     { label: 'Pagamento', chave: 'formaPagamento' },
     { label: 'Status', chave: 'status' },
     { label: 'Total', chave: 'valorTotal' },

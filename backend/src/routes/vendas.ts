@@ -159,6 +159,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
     const dadosAntes = {
       clienteId: vendaAtual.clienteId,
+      clienteNome: vendaAtual.cliente.nome,
       formaPagamento: vendaAtual.formaPagamento,
       status: vendaAtual.status,
       valorTotal: Number(vendaAtual.valorTotal),
@@ -226,6 +227,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
       const dadosDepois = {
         clienteId,
+        clienteNome: venda.cliente.nome,
         formaPagamento,
         status,
         valorTotal,
